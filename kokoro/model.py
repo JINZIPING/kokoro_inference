@@ -3,10 +3,19 @@ from .modules import CustomAlbert, ProsodyPredictor, TextEncoder
 from dataclasses import dataclass
 from huggingface_hub import hf_hub_download
 from loguru import logger
+from torch.nn.utils import parametrize
 from transformers import AlbertConfig
 from typing import Dict, Optional, Union
 import json
 import torch
+
+def strip_weight_norm(module: torch.nn.Module) -> int:
+    removed = 0
+    for child in module.modules():
+        if parametrize.is_parametrized(child, "weight"):
+            parametrize.remove_parametrizations(child, "weight", leave_parametrized=True)
+            removed += 1
+    return removed
 
 class KModel(torch.nn.Module):
     '''
@@ -33,7 +42,8 @@ class KModel(torch.nn.Module):
         repo_id: Optional[str] = None,
         config: Union[Dict, str, None] = None,
         model: Optional[str] = None,
-        disable_complex: bool = False
+        disable_complex: bool = False,
+        for_training: bool = False
     ):
         super().__init__()
         if repo_id is None:
@@ -73,10 +83,17 @@ class KModel(torch.nn.Module):
                 logger.debug(f"Did not load {key} from state_dict")
                 state_dict = {k[7:]: v for k, v in state_dict.items()}
                 getattr(self, key).load_state_dict(state_dict, strict=False)
+        if not for_training:
+            self.prepare_for_inference()
 
     @property
     def device(self):
         return self.bert.device
+
+    def prepare_for_inference(self) -> int:
+        removed = strip_weight_norm(self)
+        logger.debug(f"Removed weight_norm from {removed} modules")
+        return removed
 
     @dataclass
     class Output:
