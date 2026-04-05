@@ -25,6 +25,8 @@ for i, (gs, ps, audio) in enumerate(generator):
 ```
 Under the hood, `kokoro` uses [`misaki`](https://pypi.org/project/misaki/), a G2P library at https://github.com/hexgrad/misaki
 
+You can also pass `local_repo_dir` to `KModel` or `KPipeline` to load `config.json`, model weights, and `voices/` from a local repo-shaped directory instead of downloading from Hugging Face. `KModel` strips `weight_norm` by default for inference; use `for_training=True` to keep the training-time parametrization.
+
 ### Advanced Usage
 You can run this advanced cell on [Google Colab](https://colab.research.google.com/).
 ```py
