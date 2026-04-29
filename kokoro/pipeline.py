@@ -133,6 +133,22 @@ class KPipeline:
         elif lang_code == 'z':
             try:
                 from misaki import zh
+                if en_callable is None:
+                    en_pipeline = KPipeline(
+                        lang_code='a',
+                        repo_id=repo_id,
+                        model=False,
+                        trf=trf,
+                        local_repo_dir=local_repo_dir,
+                    )
+
+                    def en_callable(text: str) -> str:
+                        return ' '.join(
+                            result.phonemes
+                            for result in en_pipeline(text, split_pattern=None)
+                            if result.phonemes
+                        ).strip()
+
                 self.g2p = zh.ZHG2P(
                     version=None if repo_id.endswith('/Kokoro-82M') else '1.1',
                     en_callable=en_callable
